@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Appel API JSON – Affichage progressif</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  #output { background: #f8f8f8; border: 1px solid #ccc; padding: 10px; overflow: auto; height: 300px; }
+</style>
+</head>
+<body>
+
+<textarea id="jsonInput" rows="10" cols="80" placeholder="Collez votre JSON ici"></textarea><br>
+<button id="runBtn">Lancer</button>
+
+<pre id="output"></pre>
+
+<script>
+document.getElementById('runBtn').addEventListener('click', async () => {
+  const input = document.getElementById('jsonInput').value.trim();
+  if (!input) return;
+  let data;
+  try { data = JSON.parse(input); } catch (e) { alert('JSON invalide'); return; }
+
+  const keys = Object.keys(data);
+  const results = [];
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+
+  // Reset l'affichage avant de commencer
+  document.getElementById('output').textContent = '';
+
+  for (const key of keys) {
+    try {
+      const res = await fetch(`https://cdn.statically.io/gh/komed3/rtb-api@main/api/profile/${key}/info`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const api = await res.json();
+      const merged = { uri: key, ...data[key], ...api };
+      results.push(merged);
+
+      /* ---------  Affichage progressif  --------- */
+      document.getElementById('output').textContent = JSON.stringify(results, null, 2);
+      /* ------------------------------------------- */
+    } catch (e) {
+      console.error(`Erreur pour ${key} :`, e);
+    }
+    await delay(100);  // pause pour ne pas surcharger le serveur
+  }
+
+  // Si vous avez besoin d’y accéder ailleurs
+  window.globalResult = results;
+});
+</script>
+
+</body>
+</html>

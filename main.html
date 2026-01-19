@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Ouélamoula</title>
+    <link rel="stylesheet" href="./styles/style.css" />
+    <script src="./leaflet/leaflet.js"></script>
+    <script src="./scripts/main.js"></script>
+    <script>
+      "use strict";
+
+      window.addEventListener("resize", () => {
+        document.getElementById("map").style.width = window.innerWidth + "px";
+        document.getElementById("map").style.height = window.innerHeight + "px";
+      });
+
+      window.onload = async () => {
+        let map = L.map("map", {
+          center: [48.856667, 2.352222],
+          zoom: 11,
+          zoomControl: false,
+        });
+
+        L.control
+          .zoom({
+            position: "topright",
+          })
+          .addTo(map);
+
+        let modeChanger = document.getElementById("mode");
+        let mode = -1;
+
+        modeChanger.addEventListener("change", (event) => {
+          map.removeLayer(mapLayer);
+          mode *= -1;
+          mapLayer = setLayer(mode);
+        });
+
+        let mapLayer = setLayer("dark");
+
+        // Layer de base
+        function setLayer(mode) {
+          var layer;
+          if (mode == 1) {
+            layer = L.tileLayer(
+              "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}",
+              {
+                minZoom: 0,
+                maxZoom: 20,
+                attribution:
+                  '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                ext: "png",
+              },
+            );
+          } else {
+            layer = L.tileLayer(
+              "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.{ext}",
+              {
+                minZoom: 0,
+                maxZoom: 20,
+                attribution:
+                  '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                ext: "png",
+              },
+            );
+          }
+          layer.addTo(map);
+          return layer;
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <label class="switch">
+      <input id="mode" type="checkbox" />
+      <span class="slider round"></span>
+    </label>
+    <div id="left">
+      <input type="text" id="search" placeholder="Elon musk...">
+      <div id="card"></div>
+    </div>
+    <div id="map"></div>
+  </body>
+</html>

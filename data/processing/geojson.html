@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<body>
+
+<input id="key" placeholder="Google API key">
+<br><br>
+
+<textarea id="input" rows="10" cols="80"></textarea>
+<br><br>
+
+<button onclick="run()">JSON → GeoJSON</button>
+<br><br>
+
+<textarea id="output" rows="10" cols="80"></textarea>
+
+<script>
+const MAX_PER_MINUTE = 1000;
+const WINDOW_MS = 60_000;
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const cache = new Map();
+
+async function run() {
+  const key = document.getElementById("key").value;
+  const data = JSON.parse(document.getElementById("input").value);
+
+  let windowStart = Date.now();
+  let count = 0;
+
+  const features = [];
+
+  for (const item of data) {
+    const r = item.residence || {};
+    const city = (r.city || "").trim();
+    const state = (r.state || "").trim();
+    const country = (r.country || "").trim();
+
+    const address = [city, state, country].filter(Boolean).join(", ");
+    if (!address) continue;
+
+    const cacheKey = `${city.toLowerCase()}|${state.toLowerCase()}|${country.toLowerCase()}`;
+
+    let loc = cache.get(cacheKey);
+
+    if (!loc) {
+      const now = Date.now();
+      if (now - windowStart >= WINDOW_MS) {
+        windowStart = now;
+        count = 0;
+      }
+      if (count >= MAX_PER_MINUTE) {
+        await sleep(WINDOW_MS - (now - windowStart));
+        windowStart = Date.now();
+        count = 0;
+      }
+
+      const url =
+        "https://geocode.googleapis.com/v4beta/geocode/address/" +
+        encodeURIComponent(address) +
+        "?key=" + key;
+
+      const res = await fetch(url);
+      count++;
+
+      const json = await res.json();
+      loc = json?.results?.[0]?.location;
+      if (!loc) continue;
+
+      cache.set(cacheKey, loc);
+    }
+
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [loc.longitude, loc.latitude] },
+      properties: item
+    });
+  }
+
+  document.getElementById("output").value = JSON.stringify({
+    type: "FeatureCollection",
+    features
+  }, null, 2);
+}
+</script>
+
+</body>
+</html>
