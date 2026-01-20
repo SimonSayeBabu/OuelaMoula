@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <title>Ouélamoula</title>
+    <script type="text/javascript" src="./leaflet/leaflet.js"></script>
     <link rel="stylesheet" href="./styles/style.css" />
-    <script src="./leaflet/leaflet.js"></script>
-    <script src="./scripts/main.js"></script>
+    <script type="text/javascript" src="./scripts/main.js"></script>
     <script>
       "use strict";
 
@@ -17,8 +17,13 @@
       window.onload = async () => {
         let map = L.map("map", {
           center: [48.856667, 2.352222],
-          zoom: 11,
+          zoom: 8,
+          minZoom: 2,
           zoomControl: false,
+          maxBounds: [
+            [90, 200],
+            [-90, -200],
+          ],
         });
 
         L.control
@@ -36,9 +41,18 @@
           mapLayer = setLayer(mode);
         });
 
+        // Layer de base
         let mapLayer = setLayer("dark");
 
-        // Layer de base
+        // Data du geojson
+        let response = await fetch("./data/result.geojson");
+        let data = await response.json();
+
+        // Layer des data
+        let geoLayer = createGeoLayer(data, "", "citizenship", "fr");
+        geoLayer.addTo(map);
+
+        // Fonctions
         function setLayer(mode) {
           var layer;
           if (mode == 1) {
@@ -67,6 +81,43 @@
           layer.addTo(map);
           return layer;
         }
+
+        function createGeoLayer(data, type, filter, prop) {
+          let geoLayer = L.geoJson(data, {
+            filter: function (geoJsonFeature) {
+              if (filter) {
+                return geoJsonFeature.properties[filter] == prop;
+              } else {
+                return true;
+              }
+            },
+            pointToLayer: function (geoJsonPoint, latlng) {
+              let marker;
+              if (type == "money") {
+                marker = L.circle(latlng, {
+                  radius:
+                    40 *
+                    fromSurfaceValue(
+                      (geoJsonPoint.properties[""] / max) * toSurface(maxMap),
+                    ),
+                  fillColor: "#FF1111",
+                  color: "#FF1111",
+                });
+              } else {
+                var icon = new L.Icon.Default();
+                icon.options.shadowSize = [0, 0];
+                marker = L.marker(latlng, {
+                  icon: icon,
+                  title: geoJsonPoint.properties["name"],
+                });
+              }
+
+              return marker;
+            },
+          });
+
+          return geoLayer;
+        }
       };
     </script>
   </head>
@@ -76,7 +127,7 @@
       <span class="slider round"></span>
     </label>
     <div id="left">
-      <input type="text" id="search" placeholder="Elon musk...">
+      <input type="text" id="search" placeholder="Elon musk..." />
       <div id="card"></div>
     </div>
     <div id="map"></div>

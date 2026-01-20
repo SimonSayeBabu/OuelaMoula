@@ -1,10 +1,11 @@
-@import "./leaflet/leaflet.css";
+@import "../leaflet/leaflet.css";
 
 body {
   overflow: hidden;
   margin: 0;
   padding: 0;
 }
+
 #map {
   width: 100vw;
   height: 100vh;
@@ -20,7 +21,7 @@ body {
 }
 
 #search {
-  top: 1rem; 
+  top: 1rem;
   position: absolute;
   background-color: #2f2f2f;
   left: 1rem;
@@ -32,7 +33,6 @@ body {
   padding: 1rem;
   color: #ffffff;
 }
-
 
 #card {
   position: absolute;
