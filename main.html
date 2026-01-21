@@ -41,14 +41,19 @@
           mapLayer = setLayer(mode);
         });
 
+        let search = document.getElementById("search");
+        search.addEventListener("keypress", function (event) {
+          if (search.value && event.key === "Enter") {
+            searchBillionaire(search.value);
+          }
+        });
+
         // Layer de base
         let mapLayer = setLayer("dark");
 
-        // Data du geojson
+        // Layer des data
         let response = await fetch("./data/result.geojson");
         let data = await response.json();
-
-        // Layer des data
         let geoLayer = createGeoLayer(data, "", "citizenship", "fr");
         geoLayer.addTo(map);
 
@@ -82,13 +87,15 @@
           return layer;
         }
 
-        function createGeoLayer(data, type, filter, prop) {
+        function createGeoLayer(type, filter, prop) {
           let geoLayer = L.geoJson(data, {
             filter: function (geoJsonFeature) {
-              if (filter) {
-                return geoJsonFeature.properties[filter] == prop;
-              } else {
-                return true;
+              switch (filter) {
+                case "name":
+                  console.log("searched : " + prop + " result = " + geoJsonFeature.properties["name"].includes(prop))
+                  return geoJsonFeature.properties["name"].match(prop) != null;
+                default:
+                  return true;
               }
             },
             pointToLayer: function (geoJsonPoint, latlng) {
@@ -115,8 +122,17 @@
               return marker;
             },
           });
-
+          geoLayer.addTo(map);
           return geoLayer;
+        }
+
+        function removeGeoLayer() {
+          map.removeLayer(geoLayer);
+        }
+
+        function searchBillionaire(name) {
+          removeGeoLayer();
+          createGeoLayer("", "name", name);
         }
       };
     </script>
@@ -127,7 +143,11 @@
       <span class="slider round"></span>
     </label>
     <div id="left">
-      <input type="text" id="search" placeholder="Elon musk..." />
+      <input
+        type="text"
+        id="search"
+        placeholder="Elon musk..."
+      />
       <div id="card"></div>
     </div>
     <div id="map"></div>
