@@ -1,4 +1,6 @@
 @import "../leaflet/leaflet.css";
+@import "../leaflet/MarkerCluster.css";
+@import "../leaflet/MarkerCluster.Default.css";
 
 body {
   overflow: hidden;

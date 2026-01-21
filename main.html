@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <title>Ouélamoula</title>
     <script type="text/javascript" src="./leaflet/leaflet.js"></script>
+    <script
+      type="text/javascript"
+      src="./leaflet/leaflet.markercluster.js"
+    ></script>
     <link rel="stylesheet" href="./styles/style.css" />
     <script type="text/javascript" src="./scripts/main.js"></script>
     <script>
@@ -21,8 +25,8 @@
           minZoom: 2,
           zoomControl: false,
           maxBounds: [
-            [90, 200],
-            [-90, -200],
+            [90, 160],
+            [-90, -220],
           ],
         });
 
@@ -52,7 +56,7 @@
         let mapLayer = setLayer("dark");
 
         // Layer des data
-        let response = await fetch("./data/result.geojson");
+        let response = await fetch("./src/data/result.geojson");
         let data = await response.json();
         let geoLayer = createGeoLayer(data, "", "citizenship", "fr");
         geoLayer.addTo(map);
@@ -88,11 +92,17 @@
         }
 
         function createGeoLayer(type, filter, prop) {
-          let geoLayer = L.geoJson(data, {
+          let markers = L.markerClusterGroup();
+          L.geoJson(data, {
             filter: function (geoJsonFeature) {
               switch (filter) {
                 case "name":
-                  console.log("searched : " + prop + " result = " + geoJsonFeature.properties["name"].includes(prop))
+                  console.log(
+                    "searched : " +
+                      prop +
+                      " result = " +
+                      geoJsonFeature.properties["name"].includes(prop),
+                  );
                   return geoJsonFeature.properties["name"].match(prop) != null;
                 default:
                   return true;
@@ -111,19 +121,21 @@
                   color: "#FF1111",
                 });
               } else {
-                var icon = new L.Icon.Default();
-                icon.options.shadowSize = [0, 0];
+                var icon = new L.Icon({
+                  iconUrl: "./src/img/single_marker.png",
+                  iconSize: [25,25],
+                  iconAnchor: [0, 0]
+                });
                 marker = L.marker(latlng, {
                   icon: icon,
                   title: geoJsonPoint.properties["name"],
                 });
               }
-
-              return marker;
+              markers.addLayer(marker);
             },
           });
-          geoLayer.addTo(map);
-          return geoLayer;
+          markers.addTo(map);
+          return markers;
         }
 
         function removeGeoLayer() {
@@ -143,11 +155,7 @@
       <span class="slider round"></span>
     </label>
     <div id="left">
-      <input
-        type="text"
-        id="search"
-        placeholder="Elon musk..."
-      />
+      <input type="text" id="search" placeholder="Elon musk..." />
       <div id="card"></div>
     </div>
     <div id="map"></div>
