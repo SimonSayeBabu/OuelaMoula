@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Ouélamoula</title>
+    <link rel="icon" type="image" href="/src/img/icon.svg">
     <script type="text/javascript" src="./leaflet/leaflet.js"></script>
     <script
       type="text/javascript"
@@ -21,7 +22,7 @@
       window.onload = async () => {
         let map = L.map("map", {
           center: [48.856667, 2.352222],
-          zoom: 8,
+          zoom: 5,
           minZoom: 2,
           zoomControl: false,
           maxBounds: [
@@ -47,8 +48,13 @@
 
         let search = document.getElementById("search");
         search.addEventListener("keypress", function (event) {
-          if (search.value && event.key === "Enter") {
-            searchBillionaire(search.value);
+          if (event.key === "Enter") {
+            if (search.value) {
+              searchBillionaire(search.value);
+            } else {
+              removeGeoLayer();
+              geoLayer = createGeoLayer(data, "", "", "");
+            }
           }
         });
 
@@ -123,19 +129,27 @@
               } else {
                 var icon = new L.Icon({
                   iconUrl: "./src/img/single_marker.png",
-                  iconSize: [25,25],
-                  iconAnchor: [0, 0]
+                  iconSize: [25, 25],
+                  iconAnchor: [12.5, 12.5],
                 });
                 marker = L.marker(latlng, {
                   icon: icon,
                   title: geoJsonPoint.properties["name"],
                 });
               }
+              marker.on('click', function(event) {
+                onMarkerClick(geoJsonPoint);
+              });
               markers.addLayer(marker);
             },
           });
           markers.addTo(map);
           return markers;
+        }
+
+        // Pour modifier ce qui se passe quand tu clique sur un marker
+        function onMarkerClick(data) {
+          console.log(data.properties)
         }
 
         function removeGeoLayer() {
@@ -144,7 +158,7 @@
 
         function searchBillionaire(name) {
           removeGeoLayer();
-          createGeoLayer("", "name", name);
+          geoLayer = createGeoLayer("", "name", name);
         }
       };
     </script>
