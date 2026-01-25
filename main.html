@@ -109,7 +109,7 @@
                       " result = " +
                       geoJsonFeature.properties["name"].includes(prop),
                   );
-                  return geoJsonFeature.properties["name"].match(prop) != null;
+                  return geoJsonFeature.properties.name.toLowerCase().includes(prop.toLowerCase());
                 default:
                   return true;
               }
