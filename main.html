@@ -58,6 +58,49 @@
           }
         });
 
+        let filtersOpen = false;
+
+        const filterState = {
+          gender: { m:false, f:false },
+          selfMade: null,
+          family: null,
+          rank: null,
+          networth: null,
+        };
+
+        const left = document.getElementById("left");
+        const filtersToggle = document.getElementById("filtersToggle");
+        const filtersPanel = document.getElementById("filtersPanel");
+        const cardContent = document.getElementById("cardContent");
+
+        filtersToggle.addEventListener("click", () => {
+          filtersOpen = !filtersOpen;
+          filtersPanel.classList.toggle("hidden", !filtersOpen);
+          left.classList.toggle("filters-open", filtersOpen);
+          filtersToggle.textContent = filtersOpen ? "▴" : "▾";
+          removeGeoLayer();
+          geoLayer = createGeoLayer("", "ui", search.value || "");
+          geoLayer.addTo(map);
+        });
+
+        filtersPanel.addEventListener("change", (e) => {
+          const el = e.target;
+          if (!(el instanceof HTMLInputElement)) return;
+          const token = el.dataset.filter;
+          if (!token) return;
+
+          const [k, v] = token.split(":");
+          if (k === "gender") filterState.gender[v] = el.checked;
+          if (k === "selfMade") filterState.selfMade = el.checked ? true : null;
+          if (k === "family") filterState.family = el.checked ? true : null;
+          if (k === "rank") filterState.rank = el.checked ? v : null;
+          if (k === "networth") filterState.networth = el.checked ? v : null;
+
+          removeGeoLayer();
+          geoLayer = createGeoLayer("", "ui", search.value || "");
+          geoLayer.addTo(map);
+        });
+
         // Layer de base
         let mapLayer = setLayer("dark");
 
@@ -101,18 +144,30 @@
           let markers = L.markerClusterGroup();
           L.geoJson(data, {
             filter: function (geoJsonFeature) {
-              switch (filter) {
-                case "name":
-                  console.log(
-                    "searched : " +
-                      prop +
-                      " result = " +
-                      geoJsonFeature.properties["name"].includes(prop),
-                  );
-                  return geoJsonFeature.properties.name.toLowerCase().includes(prop.toLowerCase());
-                default:
-                  return true;
+              const p = geoJsonFeature.properties;
+
+              if (prop && (filter === "name" || filter === "ui")) {
+                if (!p.name?.toLowerCase().includes(prop.toLowerCase())) return false;
               }
+
+              const wantM = filterState.gender.m;
+              const wantF = filterState.gender.f;
+              if (wantM || wantF) {
+                if (p.gender === "m" && !wantM) return false;
+                if (p.gender === "f" && !wantF) return false;
+                if (p.gender !== "m" && p.gender !== "f") return false;
+              }
+
+              if (filterState.selfMade === true && !(p.selfMade && p.selfMade._is === true)) return false;
+              if (filterState.family === true && p.family !== true) return false;
+
+              if (filterState.rank === "top100" && !(p.rank <= 100)) return false;
+              if (filterState.rank === "top500" && !(p.rank <= 500)) return false;
+
+              if (filterState.networth === "gt10" && !(p.networth >= 10000)) return false;
+              if (filterState.networth === "gt50" && !(p.networth >= 50000)) return false;
+
+              return true;
             },
             pointToLayer: function (geoJsonPoint, latlng) {
               let marker;
@@ -147,10 +202,62 @@
           return markers;
         }
 
-        // Pour modifier ce qui se passe quand tu clique sur un marker
-        function onMarkerClick(data) {
-          console.log(data.properties)
+        function onMarkerClick(feature) {
+          const p = feature.properties;
+          const cardContent = document.getElementById("cardContent");
+
+          const residence = p.residence
+            ? [p.residence.city, p.residence.state, p.residence.country]
+                .filter(Boolean)
+                .join(", ")
+            : "—";
+
+          const industries = Array.isArray(p.industry) && p.industry.length
+            ? p.industry.join(", ")
+            : "—";
+
+          const sources = Array.isArray(p.source) && p.source.length
+            ? p.source.join(", ")
+            : "—";
+
+          const selfMade = p.selfMade?._is ? "Oui" : "Non";
+          const family = p.family ? "Oui" : "Non";
+
+          const networthB = typeof p.networth === "number"
+            ? (p.networth / 1000).toFixed(2)
+            : "—";
+
+          const avatar = p.image
+            ? `<img class="cardAvatar" src="${p.image}" alt="${p.name}"
+                onerror="this.outerHTML='<div class=\\'cardAvatar placeholder\\'>👤</div>'">`
+            : `<img class="cardAvatar" src="https://commons.wikimedia.org/wiki/File:Portrait_Placeholder.png" alt="${p.name}"
+                onerror="this.outerHTML='<div class=\\'cardAvatar placeholder\\'>👤</div>'">`;
+
+          cardContent.innerHTML = `
+            <div class="cardHeader">
+              ${avatar}
+              <div>
+                <div style="font-weight:700;font-size:1.1rem;">${p.name ?? "—"}</div>
+                <div style="opacity:.75;font-size:.9rem;">#${p.rank ?? "—"}</div>
+              </div>
+            </div>
+
+            <div style="margin-top:1rem;display:grid;gap:.35rem;font-size:.92rem;">
+              <div><span style="opacity:.7;">Fortune :</span> ${networthB} B$</div>
+              <div><span style="opacity:.7;">Citoyenneté :</span> ${(p.citizenship ?? "—").toUpperCase()}</div>
+              <div><span style="opacity:.7;">Résidence :</span> ${residence}</div>
+              <div><span style="opacity:.7;">Genre :</span> ${p.gender === "m" ? "Homme" : p.gender === "f" ? "Femme" : "—"}</div>
+              <div><span style="opacity:.7;">Naissance :</span> ${p.birthDate ?? "—"}</div>
+              <div><span style="opacity:.7;">Enfants :</span> ${p.children ?? "—"}</div>
+              <div><span style="opacity:.7;">Mariage :</span> ${p.maritalStatus ?? "—"}</div>
+              <div><span style="opacity:.7;">Self-made :</span> ${selfMade}</div>
+              <div><span style="opacity:.7;">Famille :</span> ${family}</div>
+              <div><span style="opacity:.7;">Industrie :</span> ${industries}</div>
+              <div><span style="opacity:.7;">Source :</span> ${sources}</div>
+            </div>
+          `;
         }
+
 
         function removeGeoLayer() {
           map.removeLayer(geoLayer);
@@ -160,6 +267,7 @@
           removeGeoLayer();
           geoLayer = createGeoLayer("", "name", name);
         }
+
       };
     </script>
   </head>
@@ -169,8 +277,29 @@
       <span class="slider round"></span>
     </label>
     <div id="left">
-      <input type="text" id="search" placeholder="Elon musk..." />
-      <div id="card"></div>
+      <div id="searchBox" class="">
+        <div id="searchBar">
+          <input type="text" id="search" placeholder="Elon musk..." />
+          <button id="filtersToggle" type="button" aria-label="Filtres" title="Filtres">▾</button>
+        </div>
+
+        <div id="filtersPanel" class="hidden">
+          <div class="filtersGrid">
+            <label><input type="checkbox" data-filter="gender:f" /> Femmes</label>
+            <label><input type="checkbox" data-filter="gender:m" /> Hommes</label>
+
+            <label><input type="checkbox" data-filter="selfMade:true" /> Self-made</label>
+            <label><input type="checkbox" data-filter="family:true" /> Héritiers / famille</label>
+
+            <label><input type="checkbox" data-filter="rank:top100" /> Top 100</label>
+            <label><input type="checkbox" data-filter="rank:top500" /> Top 500</label>
+
+            <label><input type="checkbox" data-filter="networth:gt10" /> Fortune &gt; 10B</label>
+            <label><input type="checkbox" data-filter="networth:gt50" /> Fortune &gt; 50B</label>
+          </div>
+        </div>
+      </div>
+      <div id="card"><div id="cardContent" style="padding:1rem;color:#fff;">Cliquez sur un marker…</div></div>
     </div>
     <div id="map"></div>
   </body>
