@@ -39,6 +39,8 @@
 
         let modeChanger = document.getElementById("mode");
         let mode = -1;
+        const searchBox = document.getElementById('searchBox');
+        const card = document.getElementById('card');
 
         modeChanger.addEventListener("change", (event) => {
           map.removeLayer(mapLayer);
@@ -72,6 +74,7 @@
         const filtersToggle = document.getElementById("filtersToggle");
         const filtersPanel = document.getElementById("filtersPanel");
         const cardContent = document.getElementById("cardContent");
+        const filtersGrid = document.querySelector('.filtersGrid');
 
         filtersToggle.addEventListener("click", () => {
           filtersOpen = !filtersOpen;
@@ -110,6 +113,20 @@
         let geoLayer = createGeoLayer(data, "", "citizenship", "fr");
         geoLayer.addTo(map);
 
+        selectRandomPerson(data);
+
+        function selectRandomPerson(data) {
+          if (!data.features || !data.features.length) return;
+
+          const randomIndex = Math.floor(Math.random() * data.features.length);
+          const randomFeature = data.features[randomIndex];
+
+          onMarkerClick(randomFeature);
+
+          const [lng, lat] = randomFeature.geometry.coordinates;
+          map.setView([lat, lng], 6);
+        }
+
         // Fonctions
         function setLayer(mode) {
           var layer;
@@ -124,6 +141,12 @@
                 ext: "png",
               },
             );
+            searchBox.classList.remove('light');
+            card.classList.remove('light');
+            filtersToggle.classList.remove('light');
+            search.classList.remove('light');
+            filtersGrid.classList.remove('light');
+            cardContent.classList.remove('light');
           } else {
             layer = L.tileLayer(
               "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.{ext}",
@@ -135,6 +158,12 @@
                 ext: "png",
               },
             );
+            searchBox.classList.add('light');
+            card.classList.add('light');
+            filtersToggle.classList.add('light');
+            search.classList.add('light');
+            filtersGrid.classList.add('light');
+            cardContent.classList.add('light');
           }
           layer.addTo(map);
           return layer;
@@ -159,7 +188,7 @@
               }
 
               if (filterState.selfMade === true && !(p.selfMade && p.selfMade._is === true)) return false;
-              if (filterState.family === true && p.family !== true) return false;
+              if (filterState.family === true && !(p.selfMade && p.selfMade._is === false)) return false;
 
               if (filterState.rank === "top100" && !(p.rank <= 100)) return false;
               if (filterState.rank === "top500" && !(p.rank <= 500)) return false;
@@ -220,8 +249,8 @@
             ? p.source.join(", ")
             : "—";
 
-          const selfMade = p.selfMade?._is ? "Oui" : "Non";
-          const family = p.family ? "Oui" : "Non";
+          const selfMade = p.selfMade?._is ? "Yes" : "No";
+          const family = p.family ? "Yes" : "No";
 
           const networthB = typeof p.networth === "number"
             ? (p.networth / 1000).toFixed(2)
@@ -229,31 +258,30 @@
 
           const avatar = p.image
             ? `<img class="cardAvatar" src="${p.image}" alt="${p.name}"
-                onerror="this.outerHTML='<div class=\\'cardAvatar placeholder\\'>👤</div>'">`
-            : `<img class="cardAvatar" src="https://commons.wikimedia.org/wiki/File:Portrait_Placeholder.png" alt="${p.name}"
-                onerror="this.outerHTML='<div class=\\'cardAvatar placeholder\\'>👤</div>'">`;
+                onerror="this.outerHTML='<img class="cardAvatar" src="/src/img/Mask_group.png" alt="${p.name}">`
+            : `<img class="cardAvatar" src="/src/img/Mask_group.png" alt="${p.name}">`;
 
           cardContent.innerHTML = `
             <div class="cardHeader">
               ${avatar}
               <div>
                 <div style="font-weight:700;font-size:1.1rem;">${p.name ?? "—"}</div>
-                <div style="opacity:.75;font-size:.9rem;">#${p.rank ?? "—"}</div>
+                <div style="opacity:.75;font-size:.9rem;">#${p.rank ?? "Unranked"}</div>
               </div>
             </div>
 
             <div style="margin-top:1rem;display:grid;gap:.35rem;font-size:.92rem;">
-              <div><span style="opacity:.7;">Fortune :</span> ${networthB} B$</div>
-              <div><span style="opacity:.7;">Citoyenneté :</span> ${(p.citizenship ?? "—").toUpperCase()}</div>
-              <div><span style="opacity:.7;">Résidence :</span> ${residence}</div>
-              <div><span style="opacity:.7;">Genre :</span> ${p.gender === "m" ? "Homme" : p.gender === "f" ? "Femme" : "—"}</div>
-              <div><span style="opacity:.7;">Naissance :</span> ${p.birthDate ?? "—"}</div>
-              <div><span style="opacity:.7;">Enfants :</span> ${p.children ?? "—"}</div>
-              <div><span style="opacity:.7;">Mariage :</span> ${p.maritalStatus ?? "—"}</div>
+              <div><span style="opacity:.7;">Networth :</span> ${networthB} B$</div>
+              <div><span style="opacity:.7;">Citizenship :</span> ${(p.citizenship ?? "—").toUpperCase()}</div>
+              <div><span style="opacity:.7;">Residence :</span> ${residence}</div>
+              <div><span style="opacity:.7;">Gender :</span> ${p.gender === "m" ? "Homme" : p.gender === "f" ? "Femme" : "—"}</div>
+              <div><span style="opacity:.7;">Birth Date :</span> ${p.birthDate ?? "—"}</div>
+              <div><span style="opacity:.7;">Children :</span> ${p.children ?? "—"}</div>
+              <div><span style="opacity:.7;">Marital Status :</span> ${p.maritalStatus ?? "—"}</div>
               <div><span style="opacity:.7;">Self-made :</span> ${selfMade}</div>
-              <div><span style="opacity:.7;">Famille :</span> ${family}</div>
-              <div><span style="opacity:.7;">Industrie :</span> ${industries}</div>
-              <div><span style="opacity:.7;">Source :</span> ${sources}</div>
+              <div><span style="opacity:.7;">Family :</span> ${family}</div>
+              <div><span style="opacity:.7;">Industries :</span> ${industries}</div>
+              <div><span style="opacity:.7;">Sources :</span> ${sources}</div>
             </div>
           `;
         }
@@ -285,21 +313,21 @@
 
         <div id="filtersPanel" class="hidden">
           <div class="filtersGrid">
-            <label><input type="checkbox" data-filter="gender:f" /> Femmes</label>
-            <label><input type="checkbox" data-filter="gender:m" /> Hommes</label>
+            <label><input type="checkbox" data-filter="gender:f" /> Women</label>
+            <label><input type="checkbox" data-filter="gender:m" /> Men</label>
 
             <label><input type="checkbox" data-filter="selfMade:true" /> Self-made</label>
-            <label><input type="checkbox" data-filter="family:true" /> Héritiers / famille</label>
+            <label><input type="checkbox" data-filter="family:true" /> Inherited</label>
 
             <label><input type="checkbox" data-filter="rank:top100" /> Top 100</label>
             <label><input type="checkbox" data-filter="rank:top500" /> Top 500</label>
 
-            <label><input type="checkbox" data-filter="networth:gt10" /> Fortune &gt; 10B</label>
-            <label><input type="checkbox" data-filter="networth:gt50" /> Fortune &gt; 50B</label>
+            <label><input type="checkbox" data-filter="networth:gt10" /> Networth &gt; 10B</label>
+            <label><input type="checkbox" data-filter="networth:gt50" /> Networth &gt; 50B</label>
           </div>
         </div>
       </div>
-      <div id="card"><div id="cardContent" style="padding:1rem;color:#fff;">Cliquez sur un marker…</div></div>
+      <div id="card"><div id="cardContent">Cliquez sur un marker…</div></div>
     </div>
     <div id="map"></div>
   </body>

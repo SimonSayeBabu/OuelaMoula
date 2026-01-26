@@ -13,12 +13,23 @@ body {
   height: 100vh;
 }
 
+#cardContent {
+  padding:1rem;
+  color:#fff;
+}
+
+#cardContent.light {
+  color:#000000;
+}
+
 #left {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   width: 24%;
+  min-width: 17rem;
+  max-width: 23rem;
   z-index: 999;
 }
 
@@ -98,6 +109,14 @@ input:checked + .slider:before {
   border-radius:1rem;
   z-index:999;
   overflow:hidden;
+  transition: background .2s ease, box-shadow .2s ease;
+  box-shadow: 0px 0px 10px 5px #0000002b;
+}
+
+#searchBox.light{
+  background:#f2f3f0;
+  box-shadow: 0px 0px 10px 5px #0000002b;
+  color: #000000;
 }
 
 #searchBar{
@@ -118,6 +137,10 @@ input:checked + .slider:before {
   padding:.5rem .75rem;
 }
 
+#search.light{
+  color: #000000;
+}
+
 #filtersToggle{
   width:2.4rem;
   height:2.4rem;
@@ -126,6 +149,11 @@ input:checked + .slider:before {
   background:rgba(255,255,255,.08);
   color:#fff;
   cursor:pointer;
+}
+
+#filtersToggle.light{
+  background:rgb(90 90 90 / 8%);
+  color:#000000;
 }
 
 #filtersPanel{
@@ -142,6 +170,10 @@ input:checked + .slider:before {
   color:#fff;
 }
 
+.filtersGrid.light{
+  color: #000000;
+}
+
 #card{
   position:absolute;
   background-color:#2f2f2f;
@@ -152,7 +184,13 @@ input:checked + .slider:before {
   height:85%;
   width: 100%;
   z-index:999;
-  transition: top .2s ease, height .2s ease;
+  transition: top .2s ease, height .2s ease, background .2s ease, box-shadow .2s ease;
+  box-shadow: 0px 0px 10px 5px #0000002b;
+}
+
+#card.light{
+  background:#f2f3f0;
+  box-shadow: 0px 0px 10px 5px #0000002b;
 }
 
 #left.filters-open #card{
