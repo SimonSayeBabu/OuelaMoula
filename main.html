@@ -5,299 +5,10 @@
     <title>Ouélamoula</title>
     <link rel="icon" type="image" href="/src/img/icon.svg">
     <script type="text/javascript" src="./leaflet/leaflet.js"></script>
-    <script
-      type="text/javascript"
-      src="./leaflet/leaflet.markercluster.js"
-    ></script>
+    <script type="text/javascript" src="./leaflet/markercluster.js"></script>
     <link rel="stylesheet" href="./styles/style.css" />
     <script type="text/javascript" src="./scripts/main.js"></script>
-    <script>
-      "use strict";
-
-      window.addEventListener("resize", () => {
-        document.getElementById("map").style.width = window.innerWidth + "px";
-        document.getElementById("map").style.height = window.innerHeight + "px";
-      });
-
-      window.onload = async () => {
-        let map = L.map("map", {
-          center: [48.856667, 2.352222],
-          zoom: 5,
-          minZoom: 2,
-          zoomControl: false,
-          maxBounds: [
-            [90, 160],
-            [-90, -220],
-          ],
-        });
-
-        L.control
-          .zoom({
-            position: "topright",
-          })
-          .addTo(map);
-
-        let modeChanger = document.getElementById("mode");
-        let mode = -1;
-        const searchBox = document.getElementById('searchBox');
-        const card = document.getElementById('card');
-
-        modeChanger.addEventListener("change", (event) => {
-          map.removeLayer(mapLayer);
-          mode *= -1;
-          mapLayer = setLayer(mode);
-        });
-
-        let search = document.getElementById("search");
-        search.addEventListener("keypress", function (event) {
-          if (event.key === "Enter") {
-            if (search.value) {
-              searchBillionaire(search.value);
-            } else {
-              removeGeoLayer();
-              geoLayer = createGeoLayer(data, "", "", "");
-            }
-          }
-        });
-
-        let filtersOpen = false;
-
-        const filterState = {
-          gender: { m:false, f:false },
-          selfMade: null,
-          family: null,
-          rank: null,
-          networth: null,
-        };
-
-        const left = document.getElementById("left");
-        const filtersToggle = document.getElementById("filtersToggle");
-        const filtersPanel = document.getElementById("filtersPanel");
-        const cardContent = document.getElementById("cardContent");
-        const filtersGrid = document.querySelector('.filtersGrid');
-
-        filtersToggle.addEventListener("click", () => {
-          filtersOpen = !filtersOpen;
-          filtersPanel.classList.toggle("hidden", !filtersOpen);
-          left.classList.toggle("filters-open", filtersOpen);
-          filtersToggle.textContent = filtersOpen ? "▴" : "▾";
-          removeGeoLayer();
-          geoLayer = createGeoLayer("", "ui", search.value || "");
-          geoLayer.addTo(map);
-        });
-
-        filtersPanel.addEventListener("change", (e) => {
-          const el = e.target;
-          if (!(el instanceof HTMLInputElement)) return;
-          const token = el.dataset.filter;
-          if (!token) return;
-
-          const [k, v] = token.split(":");
-          if (k === "gender") filterState.gender[v] = el.checked;
-          if (k === "selfMade") filterState.selfMade = el.checked ? true : null;
-          if (k === "family") filterState.family = el.checked ? true : null;
-          if (k === "rank") filterState.rank = el.checked ? v : null;
-          if (k === "networth") filterState.networth = el.checked ? v : null;
-
-          removeGeoLayer();
-          geoLayer = createGeoLayer("", "ui", search.value || "");
-          geoLayer.addTo(map);
-        });
-
-        // Layer de base
-        let mapLayer = setLayer("dark");
-
-        // Layer des data
-        let response = await fetch("./src/data/result.geojson");
-        let data = await response.json();
-        let geoLayer = createGeoLayer(data, "", "citizenship", "fr");
-        geoLayer.addTo(map);
-
-        selectRandomPerson(data);
-
-        function selectRandomPerson(data) {
-          if (!data.features || !data.features.length) return;
-
-          const randomIndex = Math.floor(Math.random() * data.features.length);
-          const randomFeature = data.features[randomIndex];
-
-          onMarkerClick(randomFeature);
-
-          const [lng, lat] = randomFeature.geometry.coordinates;
-          map.setView([lat, lng], 6);
-        }
-
-        // Fonctions
-        function setLayer(mode) {
-          var layer;
-          if (mode == 1) {
-            layer = L.tileLayer(
-              "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}",
-              {
-                minZoom: 0,
-                maxZoom: 20,
-                attribution:
-                  '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                ext: "png",
-              },
-            );
-            searchBox.classList.remove('light');
-            card.classList.remove('light');
-            filtersToggle.classList.remove('light');
-            search.classList.remove('light');
-            filtersGrid.classList.remove('light');
-            cardContent.classList.remove('light');
-          } else {
-            layer = L.tileLayer(
-              "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.{ext}",
-              {
-                minZoom: 0,
-                maxZoom: 20,
-                attribution:
-                  '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                ext: "png",
-              },
-            );
-            searchBox.classList.add('light');
-            card.classList.add('light');
-            filtersToggle.classList.add('light');
-            search.classList.add('light');
-            filtersGrid.classList.add('light');
-            cardContent.classList.add('light');
-          }
-          layer.addTo(map);
-          return layer;
-        }
-
-        function createGeoLayer(type, filter, prop) {
-          let markers = L.markerClusterGroup();
-          L.geoJson(data, {
-            filter: function (geoJsonFeature) {
-              const p = geoJsonFeature.properties;
-
-              if (prop && (filter === "name" || filter === "ui")) {
-                if (!p.name?.toLowerCase().includes(prop.toLowerCase())) return false;
-              }
-
-              const wantM = filterState.gender.m;
-              const wantF = filterState.gender.f;
-              if (wantM || wantF) {
-                if (p.gender === "m" && !wantM) return false;
-                if (p.gender === "f" && !wantF) return false;
-                if (p.gender !== "m" && p.gender !== "f") return false;
-              }
-
-              if (filterState.selfMade === true && !(p.selfMade && p.selfMade._is === true)) return false;
-              if (filterState.family === true && !(p.selfMade && p.selfMade._is === false)) return false;
-
-              if (filterState.rank === "top100" && !(p.rank <= 100)) return false;
-              if (filterState.rank === "top500" && !(p.rank <= 500)) return false;
-
-              if (filterState.networth === "gt10" && !(p.networth >= 10000)) return false;
-              if (filterState.networth === "gt50" && !(p.networth >= 50000)) return false;
-
-              return true;
-            },
-            pointToLayer: function (geoJsonPoint, latlng) {
-              let marker;
-              if (type == "money") {
-                marker = L.circle(latlng, {
-                  radius:
-                    40 *
-                    fromSurfaceValue(
-                      (geoJsonPoint.properties[""] / max) * toSurface(maxMap),
-                    ),
-                  fillColor: "#FF1111",
-                  color: "#FF1111",
-                });
-              } else {
-                var icon = new L.Icon({
-                  iconUrl: "./src/img/single_marker.png",
-                  iconSize: [25, 25],
-                  iconAnchor: [12.5, 12.5],
-                });
-                marker = L.marker(latlng, {
-                  icon: icon,
-                  title: geoJsonPoint.properties["name"],
-                });
-              }
-              marker.on('click', function(event) {
-                onMarkerClick(geoJsonPoint);
-              });
-              markers.addLayer(marker);
-            },
-          });
-          markers.addTo(map);
-          return markers;
-        }
-
-        function onMarkerClick(feature) {
-          const p = feature.properties;
-          const cardContent = document.getElementById("cardContent");
-
-          const residence = p.residence
-            ? [p.residence.city, p.residence.state, p.residence.country]
-                .filter(Boolean)
-                .join(", ")
-            : "—";
-
-          const industries = Array.isArray(p.industry) && p.industry.length
-            ? p.industry.join(", ")
-            : "—";
-
-          const sources = Array.isArray(p.source) && p.source.length
-            ? p.source.join(", ")
-            : "—";
-
-          const selfMade = p.selfMade?._is ? "Yes" : "No";
-          const family = p.family ? "Yes" : "No";
-
-          const networthB = typeof p.networth === "number"
-            ? (p.networth / 1000).toFixed(2)
-            : "—";
-
-          const avatar = p.image
-            ? `<img class="cardAvatar" src="${p.image}" alt="${p.name}"
-                onerror="this.outerHTML='<img class="cardAvatar" src="/src/img/Mask_group.png" alt="${p.name}">`
-            : `<img class="cardAvatar" src="/src/img/Mask_group.png" alt="${p.name}">`;
-
-          cardContent.innerHTML = `
-            <div class="cardHeader">
-              ${avatar}
-              <div>
-                <div style="font-weight:700;font-size:1.1rem;">${p.name ?? "—"}</div>
-                <div style="opacity:.75;font-size:.9rem;">#${p.rank ?? "Unranked"}</div>
-              </div>
-            </div>
-
-            <div style="margin-top:1rem;display:grid;gap:.35rem;font-size:.92rem;">
-              <div><span style="opacity:.7;">Networth :</span> ${networthB} B$</div>
-              <div><span style="opacity:.7;">Citizenship :</span> ${(p.citizenship ?? "—").toUpperCase()}</div>
-              <div><span style="opacity:.7;">Residence :</span> ${residence}</div>
-              <div><span style="opacity:.7;">Gender :</span> ${p.gender === "m" ? "Homme" : p.gender === "f" ? "Femme" : "—"}</div>
-              <div><span style="opacity:.7;">Birth Date :</span> ${p.birthDate ?? "—"}</div>
-              <div><span style="opacity:.7;">Children :</span> ${p.children ?? "—"}</div>
-              <div><span style="opacity:.7;">Marital Status :</span> ${p.maritalStatus ?? "—"}</div>
-              <div><span style="opacity:.7;">Self-made :</span> ${selfMade}</div>
-              <div><span style="opacity:.7;">Family :</span> ${family}</div>
-              <div><span style="opacity:.7;">Industries :</span> ${industries}</div>
-              <div><span style="opacity:.7;">Sources :</span> ${sources}</div>
-            </div>
-          `;
-        }
-
-
-        function removeGeoLayer() {
-          map.removeLayer(geoLayer);
-        }
-
-        function searchBillionaire(name) {
-          removeGeoLayer();
-          geoLayer = createGeoLayer("", "name", name);
-        }
-
-      };
-    </script>
+    
   </head>
   <body>
     <label class="switch">
@@ -306,9 +17,9 @@
     </label>
     <div id="left">
       <div id="searchBox" class="">
-        <div id="searchBar">
-          <input type="text" id="search" placeholder="Elon musk..." />
-          <button id="filtersToggle" type="button" aria-label="Filtres" title="Filtres">▾</button>
+        <div id="searchBar" class="">
+          <input type="text" id="search" placeholder="Search for a billionaire . . ." />
+          <button id="filtersToggle" type="button" aria-label="Filtres" title="Filtres"></button>
         </div>
 
         <div id="filtersPanel" class="hidden">
@@ -321,13 +32,16 @@
 
             <label><input type="checkbox" data-filter="rank:top100" /> Top 100</label>
             <label><input type="checkbox" data-filter="rank:top500" /> Top 500</label>
-
-            <label><input type="checkbox" data-filter="networth:gt10" /> Networth &gt; 10B</label>
-            <label><input type="checkbox" data-filter="networth:gt50" /> Networth &gt; 50B</label>
+            
+            <input type="range" data-filter="networth" value="0" min="0" max="500" step="10" oninput="this.nextElementSibling.value = 'Min '+this.value+'B networth'">
+            <output>Min 0B networth</output>
+            
           </div>
         </div>
       </div>
-      <div id="card"><div id="cardContent">Cliquez sur un marker…</div></div>
+      <div id="card">
+        <div id="cardContent"></div>
+      </div>
     </div>
     <div id="map"></div>
   </body>
