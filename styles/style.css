@@ -35,14 +35,15 @@ body {
 }
 
 #card.light {
-  background: #f2f3f0;
-  box-shadow: 0px 0px 10px 5px #0000002b;
+  background: #f2f3f0 !important;
+  box-shadow: 0px 0px 10px 5px #0000002b !important;
 }
 
 .cardHeader {
   display: flex;
   gap: 1rem;
   align-items: center;
+  margin-bottom: 0.5rem;
 }
 
 .cardAvatar {
@@ -69,10 +70,10 @@ body {
 }
 
 .cardBody {
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
 
   div {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
   }
   span {
     font-weight: 400;
@@ -271,6 +272,7 @@ input:checked + .slider:before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border-top-color: #ffffff;
 }
 
 #filtersToggle::after {
@@ -291,6 +293,50 @@ input:checked + .slider:before {
 
 #filtersToggle.light::after {
   border-top-color: #000000;
+}
+
+.comparisons{
+  display: flex;
+  margin: 0;
+}
+
+.comparisonsTitle {
+  margin: 0 !important;
+}
+
+#comparisonsToggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  border: none;
+  border-radius: 0.8rem;
+  background: rgba(157, 157, 157, 0.06);
+  cursor: pointer;
+}
+
+
+#comparisonsToggle.light::after {
+  border-top-color: #000000;
+}
+
+#comparisonsToggle::after {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid currentColor;
+  transform: rotate(180deg);
+  transition: transform 0.18s ease;
+  border-top-color: #000000;
+}
+
+.comparisonsList.hidden{
+ display: none;
 }
 
 #rank {

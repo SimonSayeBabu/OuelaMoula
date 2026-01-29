@@ -7,7 +7,6 @@ window.addEventListener("resize", () => {
   }
 });
 let timeOpen;
-let gainIntervalId = null;
 
 window.onload = async () => {
   timeOpen = Date.now();
@@ -65,7 +64,7 @@ window.onload = async () => {
         searchBillionaire(search.value);
       } else {
         removeGeoLayer();
-        geoLayer = createGeoLayer(data, "", "", "");
+        geoLayer = createGeoLayer("", "");
         if (geoLayer && typeof geoLayer.getBounds === "function") {
           const bounds = geoLayer.getBounds();
           if (bounds && bounds.isValid && bounds.isValid()) {
@@ -87,7 +86,7 @@ window.onload = async () => {
     left.classList.toggle("filters-open", filtersOpen);
     filtersToggle.classList.toggle("open", filtersOpen);
     removeGeoLayer();
-    geoLayer = createGeoLayer("", "ui", search.value || "");
+    geoLayer = createGeoLayer("ui", search.value || "");
     geoLayer.addTo(map);
     if (geoLayer && typeof geoLayer.getBounds === "function") {
       const bounds = geoLayer.getBounds();
@@ -124,7 +123,7 @@ window.onload = async () => {
     }
 
     removeGeoLayer();
-    geoLayer = createGeoLayer("", "ui", search.value || "");
+    geoLayer = createGeoLayer("ui", search.value || "");
     geoLayer.addTo(map);
     if (geoLayer && typeof geoLayer.getBounds === "function") {
       const bounds = geoLayer.getBounds();
@@ -144,7 +143,7 @@ window.onload = async () => {
   // layer des data
   let response = await fetch("./src/data/result.geojson");
   let data = await response.json();
-  let geoLayer = createGeoLayer(data, "", "citizenship", "fr");
+  let geoLayer = createGeoLayer("", "citizenship");
   geoLayer.addTo(map);
 
   selectRandomPerson(data);
@@ -206,7 +205,7 @@ window.onload = async () => {
     return layer;
   }
 
-  function createGeoLayer(type, filter, prop) {
+  function createGeoLayer(filter, prop) {
     let markers = L.markerClusterGroup();
     L.geoJson(data, {
       filter: function (geoJsonFeature) {
@@ -274,7 +273,7 @@ window.onload = async () => {
 
   function searchBillionaire(name) {
     removeGeoLayer();
-    geoLayer = createGeoLayer("", "name", name);
+    geoLayer = createGeoLayer("name", name);
     geoLayer.addTo(map);
     if (geoLayer && typeof geoLayer.getBounds === "function") {
       const bounds = geoLayer.getBounds();
@@ -329,12 +328,6 @@ function onMarkerClick(feature) {
   const networthB =
     typeof p.networth === "number" ? (p.networth / 1000).toFixed(2) : "—";
 
-  // clear any previous gain updater
-  if (typeof gainIntervalId === "number") {
-    clearInterval(gainIntervalId);
-    gainIntervalId = null;
-  }
-
   let gainHtml = "";
 
   const y2024Net =
@@ -347,15 +340,14 @@ function onMarkerClick(feature) {
   ) {
     gainPerSec = ((p.networth - y2024Net) * 1e6) / 31622400;
     if (gainPerSec > 0) {
-      const initialGained = (gainPerSec * (Date.now() - timeOpen)) / 1000;
-      const display =
-        initialGained > 0 ? Number(initialGained).toFixed(2) : "0.00";
-      gainHtml = `<div><span>Gained since your visit:</span><br><span id="gainedValue">${display} $</span></div>
+      gainHtml = `<div><span>Gained since your visit:</span><br><span id="gainedValue">$</span></div>
                   <div><span>Gain per second:</span> ${Number(gainPerSec).toFixed(2)} $/s</div>`;
+      gainPerSec = { value: gainPerSec };
     } else {
       gainPerSec = null;
     }
   }
+  const totalNetDollars = p.networth * 1e6;
 
   const avatar = p.image
     ? `<img class="cardAvatar" src="${p.image}" alt="${p.name}"
@@ -379,21 +371,49 @@ function onMarkerClick(feature) {
         <br/>
         <div><span>Citizenship :</span> ${(p.citizenship ?? "—").toUpperCase()}</div>
         <div><span>Residence :</span> ${residence}</div>
-        <div><span>Gender :</span> ${p.gender === "m" ? "Men" : p.gender === "f" ? "Women" : "—"}</div>
+        <div><span>Gender :</span> ${p.gender === "m" ? "Male" : p.gender === "f" ? "Female" : "—"}</div>
         <div><span>Birth Date :</span> ${p.birthDate ?? "—"}</div>
         <div><span>Children :</span> ${p.children ?? "—"}</div>
         <div><span>Marital Status :</span> ${p.maritalStatus ?? "Single"}</div>
+        <br/>
+        <div class="comparisons">
+          <div class="comparisonsTitle">
+            What could you buy with their net worth?
+          </div>
+          <button
+            id="comparisonsToggle"
+            type="button"
+            title="comparisons"
+          ></button>
+        </div>
+        <div class="comparisonsList">
+          <div><span>Ferrari (200k):</span> ${totalNetDollars !== null ? Number(totalNetDollars / 200000).toFixed(0) : "—"}</div>
+          <div><span>House (500k):</span> ${totalNetDollars !== null ? Number(totalNetDollars / 500000).toFixed(0) : "—"}</div>
+          <div><span>iPhone (1k):</span> ${totalNetDollars !== null ? Number(totalNetDollars / 1000).toFixed(0) : "—"}</div>
+          <div><span>Coffee (4):</span> ${totalNetDollars !== null ? Number(totalNetDollars / 4).toFixed(0) : "—"}</div>
+          <div><span>Yacht (1M):</span> ${totalNetDollars !== null ? Number(totalNetDollars / 1000000).toFixed(0) : "—"}</div>
+        </div>
       </div>
     `;
 
-  if (gainPerSec !== null && gainPerSec > 0) {
+    const comparisonsToggle = document.getElementById("comparisonsToggle");
+    const comparisonsList = cardContent.querySelector(".comparisonsList");
+    if (comparisonsList) comparisonsList.classList.add("hidden");
+    if (comparisonsToggle && comparisonsList) {
+      comparisonsToggle.addEventListener("click", () => {
+        const isOpen = !comparisonsList.classList.toggle("hidden");
+        comparisonsToggle.classList.toggle("open", isOpen);
+      });
+    }
+
+  if (gainPerSec !== null && gainPerSec.value > 0) {
     const updateGain = () => {
       const timespent = Date.now() - timeOpen;
-      const gained = (gainPerSec * timespent) / 1000;
+      const gained = (gainPerSec.value * timespent) / 1000;
       const el = document.getElementById("gainedValue");
       if (el) el.textContent = Number(gained).toFixed(2) + " $";
     };
     updateGain();
-    gainIntervalId = setInterval(updateGain, 1000);
+    setInterval(updateGain, 1000);
   }
 }
