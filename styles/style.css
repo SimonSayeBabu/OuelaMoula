@@ -208,6 +208,10 @@ input:checked + .slider:before {
   color: #fff;
 }
 
+#search.light {
+  color: #000000;
+}
+
 #searchBar.light {
   color: #000000;
   background-color: #fafafa;
