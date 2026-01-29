@@ -1,4 +1,4 @@
-// taille de la map qui prend tous l'ecran
+// taille de la map qui prend tout l'ecran
 window.addEventListener("resize", () => {
   const mapEl = document.getElementById("map");
   if (mapEl) {
@@ -6,8 +6,12 @@ window.addEventListener("resize", () => {
     mapEl.style.height = window.innerHeight + "px";
   }
 });
+let timeOpen;
+let gainIntervalId = null;
 
 window.onload = async () => {
+  timeOpen = Date.now();
+
   // params de la map
   let map = L.map("map", {
     center: [48.856667, 2.352222],
@@ -25,6 +29,7 @@ window.onload = async () => {
   let mode = -1;
   let filtersOpen = false;
 
+  // les filtres
   const filterState = {
     gender: { m: false, f: false },
     selfMade: null,
@@ -45,12 +50,15 @@ window.onload = async () => {
   const filtersGrid = document.querySelector(".filtersGrid");
 
   // listeners
+
+  // le dark mode
   modeChanger.addEventListener("change", (event) => {
     map.removeLayer(mapLayer);
     mode *= -1;
     mapLayer = setLayer(mode);
   });
 
+  // rechreche
   search.addEventListener("keypress", function (event) {
     if (event.key === "Enter") {
       if (search.value) {
@@ -72,6 +80,7 @@ window.onload = async () => {
     }
   });
 
+  // l'affichage des filtres
   filtersToggle.addEventListener("click", () => {
     filtersOpen = !filtersOpen;
     filtersPanel.classList.toggle("hidden", !filtersOpen);
@@ -92,6 +101,7 @@ window.onload = async () => {
     }
   });
 
+  // filtres + change la map
   filtersPanel.addEventListener("change", (e) => {
     const el = e.target;
     if (!(el instanceof HTMLInputElement)) return;
@@ -140,7 +150,6 @@ window.onload = async () => {
   selectRandomPerson(data);
 
   // Fonctions
-
   function selectRandomPerson(data) {
     if (!data.features || !data.features.length) return;
 
@@ -153,6 +162,7 @@ window.onload = async () => {
     map.setView([lat, lng], 6);
   }
 
+  // layer avec en arg le mode
   function setLayer(mode) {
     var layer;
     if (mode == 1) {
@@ -238,27 +248,16 @@ window.onload = async () => {
       },
       pointToLayer: function (geoJsonPoint, latlng) {
         let marker;
-        if (type == "money") {
-          marker = L.circle(latlng, {
-            radius:
-              40 *
-              fromSurfaceValue(
-                (geoJsonPoint.properties[""] / max) * toSurface(maxMap),
-              ),
-            fillColor: "#FF1111",
-            color: "#FF1111",
-          });
-        } else {
-          var icon = new L.Icon({
-            iconUrl: "./src/img/single_marker.png",
-            iconSize: [25, 25],
-            iconAnchor: [12.5, 12.5],
-          });
-          marker = L.marker(latlng, {
-            icon: icon,
-            title: geoJsonPoint.properties["name"],
-          });
-        }
+        var icon = new L.Icon({
+          iconUrl: "./src/img/single_marker.png",
+          iconSize: [25, 25],
+          iconAnchor: [12.5, 12.5],
+        });
+        marker = L.marker(latlng, {
+          icon: icon,
+          title: geoJsonPoint.properties["name"],
+        });
+
         marker.on("click", function (event) {
           onMarkerClick(geoJsonPoint);
         });
@@ -306,14 +305,6 @@ window.onload = async () => {
   }
 };
 
-function fromSurfaceValue(surface) {
-  return Math.sqrt(surface / Math.PI);
-}
-
-function toSurface(radius) {
-  return Math.PI * radius * radius;
-}
-
 function onMarkerClick(feature) {
   const p = feature.properties;
   const cardContent = document.getElementById("cardContent");
@@ -338,11 +329,38 @@ function onMarkerClick(feature) {
   const networthB =
     typeof p.networth === "number" ? (p.networth / 1000).toFixed(2) : "—";
 
+  // clear any previous gain updater
+  if (typeof gainIntervalId === "number") {
+    clearInterval(gainIntervalId);
+    gainIntervalId = null;
+  }
+
+  let gainHtml = "";
+
+  const y2024Net =
+    p.y2024 && typeof p.y2024.networth === "number" ? p.y2024.networth : null;
+  let gainPerSec = null;
+  if (
+    typeof p.networth === "number" &&
+    typeof y2024Net === "number" &&
+    y2024Net >= 1
+  ) {
+    gainPerSec = ((p.networth - y2024Net) * 1e6) / 31622400;
+    if (gainPerSec > 0) {
+      const initialGained = (gainPerSec * (Date.now() - timeOpen)) / 1000;
+      const display =
+        initialGained > 0 ? Number(initialGained).toFixed(2) : "0.00";
+      gainHtml = `<div><span>Gained since your visit:</span><br><span id="gainedValue">${display} $</span></div>
+                  <div><span>Gain per second:</span> ${Number(gainPerSec).toFixed(2)} $/s</div>`;
+    } else {
+      gainPerSec = null;
+    }
+  }
+
   const avatar = p.image
     ? `<img class="cardAvatar" src="${p.image}" alt="${p.name}"
               onerror="this.outerHTML='<img class=\"cardAvatar\" src=/src/img/Mask_group.png alt=\"${p.name}\">`
     : `<img class="cardAvatar" src="/src/img/Mask_group.png" alt="${p.name}">`;
-
   cardContent.innerHTML = `
       <div class="cardHeader">
         ${avatar}
@@ -354,6 +372,7 @@ function onMarkerClick(feature) {
 
       <div class="cardBody">
         <div><span>Networth :</span> ${networthB} B$</div>
+        ${gainHtml}
         <div><span>Self-made :</span> ${selfMade}</div>
         <div><span>Industries :</span> ${industries}</div>
         <div><span>Sources :</span> ${sources}</div>
@@ -364,7 +383,17 @@ function onMarkerClick(feature) {
         <div><span>Birth Date :</span> ${p.birthDate ?? "—"}</div>
         <div><span>Children :</span> ${p.children ?? "—"}</div>
         <div><span>Marital Status :</span> ${p.maritalStatus ?? "Single"}</div>
-        <div><span>Family :</span> ${family}</div>
       </div>
     `;
+
+  if (gainPerSec !== null && gainPerSec > 0) {
+    const updateGain = () => {
+      const timespent = Date.now() - timeOpen;
+      const gained = (gainPerSec * timespent) / 1000;
+      const el = document.getElementById("gainedValue");
+      if (el) el.textContent = Number(gained).toFixed(2) + " $";
+    };
+    updateGain();
+    gainIntervalId = setInterval(updateGain, 1000);
+  }
 }

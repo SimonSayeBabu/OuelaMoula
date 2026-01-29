@@ -3,12 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <title>Ouélamoula</title>
-    <link rel="icon" type="image" href="/src/img/icon.svg">
+    <link rel="icon" type="image" href="/src/img/icon.svg" />
     <script type="text/javascript" src="./leaflet/leaflet.js"></script>
     <script type="text/javascript" src="./leaflet/markercluster.js"></script>
     <link rel="stylesheet" href="./styles/style.css" />
     <script type="text/javascript" src="./scripts/main.js"></script>
-    
   </head>
   <body>
     <label class="switch">
@@ -18,24 +17,57 @@
     <div id="left">
       <div id="searchBox" class="">
         <div id="searchBar" class="">
-          <input type="text" id="search" placeholder="Search for a billionaire . . ." />
-          <button id="filtersToggle" type="button" aria-label="Filtres" title="Filtres"></button>
+          <input
+            type="text"
+            id="search"
+            placeholder="Search for a billionaire . . ."
+          />
+          <button
+            id="filtersToggle"
+            type="button"
+            aria-label="Filtres"
+            title="Filtres"
+          ></button>
         </div>
 
         <div id="filtersPanel" class="hidden">
           <div class="filtersGrid">
-            <label><input type="checkbox" data-filter="gender:f" /> Women</label>
+            <label
+              ><input type="checkbox" data-filter="gender:f" /> Women</label
+            >
             <label><input type="checkbox" data-filter="gender:m" /> Men</label>
 
-            <label><input type="checkbox" data-filter="selfMade:true" /> Self-made</label>
-            <label><input type="checkbox" data-filter="family:true" /> Inherited</label>
+            <label
+              ><input type="checkbox" data-filter="selfMade:true" />
+              Self-made</label
+            >
+            <label
+              ><input type="checkbox" data-filter="family:true" />
+              Inherited</label
+            >
 
-            <label><input type="checkbox" data-filter="rank:top100" /> Top 100</label>
-            <label><input type="checkbox" data-filter="rank:top500" /> Top 500</label>
-            
-            <input type="range" data-filter="networth" value="0" min="0" max="500" step="10" oninput="this.nextElementSibling.value = 'Min '+this.value+'B networth'">
+            <label
+              ><input type="checkbox" data-filter="rank:top100" /> Top
+              100</label
+            >
+            <label
+              ><input type="checkbox" data-filter="rank:top500" /> Top
+              500</label
+            >
+
+            <input
+              type="range"
+              data-filter="networth"
+              value="0"
+              min="0"
+              max="500"
+              step="10"
+              oninput="
+                this.nextElementSibling.value =
+                  'Min ' + this.value + 'B networth'
+              "
+            />
             <output>Min 0B networth</output>
-            
           </div>
         </div>
       </div>
