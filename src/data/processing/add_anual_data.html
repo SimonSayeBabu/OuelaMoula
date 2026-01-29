@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<body>
+
+
+<textarea id="input" rows="10" cols="80" placeholder="Colle ici ton GeoJSON (FeatureCollection)"></textarea>
+<br><br>
+
+<button onclick="run()">GeoJSON → GeoJSON (update rank/networth + y2024)</button>
+<br><br>
+
+<textarea id="output" rows="10" cols="80"></textarea>
+
+<script>
+const API_BASE = "https://cdn.statically.io/gh/komed3/rtb-api@main/api/profile";
+const annualCache = new Map();
+
+async function fetchAnnual(uri) {
+  if (!uri) return null;
+  if (annualCache.has(uri)) return annualCache.get(uri);
+
+  const url = `${API_BASE}/${encodeURIComponent(uri)}/annual`;
+  const res = await fetch(url, { headers: { accept: "application/json" } });
+  if (!res.ok) throw new Error(`annual HTTP ${res.status} for ${uri}`);
+  const json = await res.json();
+
+  annualCache.set(uri, json);
+  return json;
+}
+
+/**
+ * Met à jour SANS renommer les champs existants :
+ * - properties.rank   <- 2025.rank.latest (si dispo)
+ * - properties.networth <- 2025.networth.latest (si dispo)
+ * Et ajoute un champ unique pour 2024 :
+ * - properties.y2024 = { rank, networth } (uniquement ces 2 valeurs)
+ */
+function applyAnnualToProperties(props, annual) {
+  if (!props || !annual) return;
+
+  const y2025 = annual["2025"];
+  const rank2025 = y2025?.rank?.latest;
+  const networth2025 = y2025?.networth?.latest;
+
+  if (Number.isFinite(rank2025)) props.rank = rank2025;
+  if (Number.isFinite(networth2025)) props.networth = networth2025;
+
+  const y2024 = annual["2024"];
+  const rank2024 = y2024?.rank?.latest;
+  const networth2024 = y2024?.networth?.latest;
+
+  props.y2024 = {
+    rank: Number.isFinite(rank2024) ? rank2024 : null,
+    networth: Number.isFinite(networth2024) ? networth2024 : null
+  };
+}
+
+async function run() {
+  const geojson = JSON.parse(document.getElementById("input").value);
+
+  if (!geojson || geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
+    throw new Error("Entrée invalide: attends un GeoJSON FeatureCollection avec features[]");
+  }
+
+  for (const feature of geojson.features) {
+    const props = feature?.properties;
+    const uri = props?.uri;
+
+    if (!uri) continue;
+
+    try {
+      const annual = await fetchAnnual(uri);
+      applyAnnualToProperties(props, annual);
+    } catch (e) {
+      props.annual_error = String(e?.message || e);
+    }
+  }
+
+  document.getElementById("output").value = JSON.stringify(geojson, null, 2);
+}
+</script>
+
+</body>
+</html>
