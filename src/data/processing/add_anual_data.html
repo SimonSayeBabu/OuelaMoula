@@ -30,10 +30,10 @@ async function fetchAnnual(uri) {
 
 /**
  * Met à jour SANS renommer les champs existants :
- * - properties.rank   <- 2025.rank.latest (si dispo)
- * - properties.networth <- 2025.networth.latest (si dispo)
+ * - properties.rank   <- 2025.rank.latest
+ * - properties.networth <- 2025.networth.latest
  * Et ajoute un champ unique pour 2024 :
- * - properties.y2024 = { rank, networth } (uniquement ces 2 valeurs)
+ * - properties.y2024 = { rank, networth }
  */
 function applyAnnualToProperties(props, annual) {
   if (!props || !annual) return;
